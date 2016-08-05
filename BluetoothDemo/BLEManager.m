@@ -44,9 +44,6 @@
          */
         NSDictionary *options=[NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],CBCentralManagerScanOptionAllowDuplicatesKey, nil];
         [_centerManager scanForPeripheralsWithServices:nil options:options];
-    }else if ([_centerManager state] == CBCentralManagerStateUnsupported){
-        NSString *text = [NSString stringWithFormat:@"设备不支持"];
-        [_discoveryDelegate logMessage:text];
     }
 }
 
@@ -120,6 +117,54 @@
     _myCharacteristic = nil;
 }
 
+//设置通知
+-(void)notifyCharacteristic:(CBPeripheral *)peripheral
+             characteristic:(CBCharacteristic *)characteristic{
+    //设置通知，数据通知会进入：didUpdateValueForCharacteristic方法
+    [peripheral setNotifyValue:YES forCharacteristic:characteristic];
+    
+}
+
+//取消通知
+-(void)cancelNotifyCharacteristic:(CBPeripheral *)peripheral
+                   characteristic:(CBCharacteristic *)characteristic{
+    
+    [peripheral setNotifyValue:NO forCharacteristic:characteristic];
+}
+
+//写数据
+-(void)writeCharacteristic:(CBPeripheral *)peripheral
+            characteristic:(CBCharacteristic *)characteristic
+                     value:(NSData *)value{
+    
+    //打印出 characteristic 的权限，可以看到有很多种，这是一个NS_OPTIONS，就是可以同时用于好几个值，常见的有read，write，notify，indicate，知知道这几个基本就够用了，前两个是读写权限，后两个都是通知，两种不同的通知方式。
+    /*
+     typedef NS_OPTIONS(NSUInteger, CBCharacteristicProperties) {
+     CBCharacteristicPropertyBroadcast												= 0x01,
+     CBCharacteristicPropertyRead													= 0x02,
+     CBCharacteristicPropertyWriteWithoutResponse									= 0x04,
+     CBCharacteristicPropertyWrite													= 0x08,
+     CBCharacteristicPropertyNotify													= 0x10,
+     CBCharacteristicPropertyIndicate												= 0x20,
+     CBCharacteristicPropertyAuthenticatedSignedWrites								= 0x40,
+     CBCharacteristicPropertyExtendedProperties										= 0x80,
+     CBCharacteristicPropertyNotifyEncryptionRequired NS_ENUM_AVAILABLE(NA, 6_0)		= 0x100,
+     CBCharacteristicPropertyIndicateEncryptionRequired NS_ENUM_AVAILABLE(NA, 6_0)	= 0x200
+     };
+     
+     */
+    //只有 characteristic.properties 有write的权限才可以写
+    if(characteristic.properties & CBCharacteristicPropertyWrite){
+        /*
+         最好一个type参数可以为CBCharacteristicWriteWithResponse或type:CBCharacteristicWriteWithResponse,区别是是否会有反馈
+         */
+        [peripheral writeValue:value forCharacteristic:characteristic type:CBCharacteristicWriteWithResponse];
+    }else{
+        NSString *text = [NSString stringWithFormat:@"该字段不可写！"];
+        [_discoveryDelegate logMessage:text];
+    }
+}
+
 -(void)peripheralWithPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary *)advertisementData RSSI:(NSNumber *)RSSI
 {
     if (![_perpherralList containsObject:peripheral]) {
@@ -152,6 +197,7 @@
                             NSString *text = [NSString stringWithFormat:@"连接失败--原因:%@",error.localizedDescription];
                             [_discoveryDelegate logMessage:text];
                             [self clearDevices];
+                            // 连接失败或断开连接继续扫描进行重连
                             [self startScanning];
                         }
                     }
@@ -163,9 +209,8 @@
 }
 
 #pragma mark CBCentralManagerDelegate
-
 - (void)centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary<NSString *,id> *)advertisementData RSSI:(NSNumber *)RSSI{
-    
+    // 扫描到设备
     [self peripheralWithPeripheral:peripheral advertisementData:advertisementData RSSI:RSSI];
 }
 
@@ -233,6 +278,7 @@
         {
             NSString *text = [NSString stringWithFormat:@"蓝牙已开启"];
             [_discoveryDelegate logMessage:text];
+            // 如果蓝牙是开启的,立即开始扫描
             [self startScanning];
         }
             
@@ -262,13 +308,13 @@
     }
 }
 
-#pragma mark - characteristic/
-
 - (void)peripheral:(CBPeripheral *)peripheral didDiscoverCharacteristicsForService:(CBService *)service error:(NSError *)error
 {
     if (error == nil) {
         _connectHandler(YES,nil);
-        [_characteristicManagerDelegate peripheral:peripheral didDiscoverCharacteristicsForService:service error:error];
+        if ([_characteristicManagerDelegate respondsToSelector:@selector(peripheral:didDiscoverCharacteristicsForService:error:)]) {
+            [_characteristicManagerDelegate peripheral:peripheral didDiscoverCharacteristicsForService:service error:error];
+        }
     }
 }
 - (void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error
@@ -292,54 +338,8 @@
 
 -(void)peripheral:(CBPeripheral *)peripheral didUpdateValueForDescriptor:(CBDescriptor *)descriptor error:(NSError *)error
 {
-    [_characteristicManagerDelegate peripheral:peripheral didUpdateValueForDescriptor:descriptor error:error];
-}
-
-//设置通知
--(void)notifyCharacteristic:(CBPeripheral *)peripheral
-             characteristic:(CBCharacteristic *)characteristic{
-    //设置通知，数据通知会进入：didUpdateValueForCharacteristic方法
-    [peripheral setNotifyValue:YES forCharacteristic:characteristic];
-    
-}
-
-//取消通知
--(void)cancelNotifyCharacteristic:(CBPeripheral *)peripheral
-                   characteristic:(CBCharacteristic *)characteristic{
-    
-    [peripheral setNotifyValue:NO forCharacteristic:characteristic];
-}
-
-//写数据
--(void)writeCharacteristic:(CBPeripheral *)peripheral
-            characteristic:(CBCharacteristic *)characteristic
-                     value:(NSData *)value{
-    
-    //打印出 characteristic 的权限，可以看到有很多种，这是一个NS_OPTIONS，就是可以同时用于好几个值，常见的有read，write，notify，indicate，知知道这几个基本就够用了，前两个是读写权限，后两个都是通知，两种不同的通知方式。
-    /*
-     typedef NS_OPTIONS(NSUInteger, CBCharacteristicProperties) {
-     CBCharacteristicPropertyBroadcast												= 0x01,
-     CBCharacteristicPropertyRead													= 0x02,
-     CBCharacteristicPropertyWriteWithoutResponse									= 0x04,
-     CBCharacteristicPropertyWrite													= 0x08,
-     CBCharacteristicPropertyNotify													= 0x10,
-     CBCharacteristicPropertyIndicate												= 0x20,
-     CBCharacteristicPropertyAuthenticatedSignedWrites								= 0x40,
-     CBCharacteristicPropertyExtendedProperties										= 0x80,
-     CBCharacteristicPropertyNotifyEncryptionRequired NS_ENUM_AVAILABLE(NA, 6_0)		= 0x100,
-     CBCharacteristicPropertyIndicateEncryptionRequired NS_ENUM_AVAILABLE(NA, 6_0)	= 0x200
-     };
-     
-     */
-    //只有 characteristic.properties 有write的权限才可以写
-    if(characteristic.properties & CBCharacteristicPropertyWrite){
-        /*
-         最好一个type参数可以为CBCharacteristicWriteWithResponse或type:CBCharacteristicWriteWithResponse,区别是是否会有反馈
-         */
-        [peripheral writeValue:value forCharacteristic:characteristic type:CBCharacteristicWriteWithResponse];
-    }else{
-        NSString *text = [NSString stringWithFormat:@"该字段不可写！"];
-        [_discoveryDelegate logMessage:text];
+    if ([_characteristicManagerDelegate respondsToSelector:@selector(peripheral:didUpdateValueForDescriptor:error:)]) {
+        [_characteristicManagerDelegate peripheral:peripheral didUpdateValueForDescriptor:descriptor error:error];
     }
 }
 

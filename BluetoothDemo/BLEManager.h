@@ -115,7 +115,6 @@ typedef void (^ConnectResultHandler)(BOOL success,NSError *error);
 
 @property (nonatomic ,copy) ConnectResultHandler connectHandler;
 @property (nonatomic ,assign) BOOL isTimeOutAlert;
-@property (nonatomic ,assign) int bpmValue;
 
 + (id)sharedManager;
 - (id)init;

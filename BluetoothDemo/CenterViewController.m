@@ -91,7 +91,11 @@
     [_manager writeCharacteristic:_manager.myPerpherral characteristic:[_manager getCharacteristicWithUUID:INSULINK_CHARACTER_TIME] value:data];
 }
 
-// 读取数据
+/**
+ *  读取数据
+ *  数据长度6字节,第一个字节为序号,第2-5个字节为时间戳,最后一个字节为值
+ *  @param str 16进制字符串
+ */
 - (void)readData:(NSString *)str{
     NSString *indexStr = [str substringWithRange:NSMakeRange(0, 2)];
     NSString *timeStr = [str substringWithRange:NSMakeRange(2, 8)];
@@ -114,6 +118,7 @@
 - (long long)readTime:(NSString *)str{
     
     NSString *timeHexStr = @"";
+    // 传过来的是逆序的,需要调整再转换
     for (int i = (int)str.length - 2; i >= 0; i -= 2) {
         NSString *temp = [str substringWithRange:NSMakeRange(i, 2)];
         timeHexStr = [timeHexStr stringByAppendingString:temp];
@@ -195,6 +200,26 @@
 
 - (void)logMessage:(NSString *)text{
     [self logHandleWithMessage:text];
+}
+
+// 输出log
+- (void)logHandleWithMessage:(NSString *)text{
+    
+    if (_logArray.count > 200) {
+        [_logArray removeObjectsInRange:NSMakeRange(0, 100)];
+        [_table reloadData];
+    }
+    
+    if ([text isEqualToString:@""]) {
+        return;
+    }
+    logModel *model = [[logModel alloc] initWithMessage:text];
+    if (model) {
+        NSLog(@"%@",text);
+        [_logArray addObject:model];
+        [_table insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:(_logArray.count - 1) inSection:0]] withRowAnimation:UITableViewRowAnimationNone];
+        [_table scrollToRowAtIndexPath:[NSIndexPath indexPathForRow:(_logArray.count - 1) inSection:0] atScrollPosition:UITableViewScrollPositionBottom animated:YES];
+    }
 }
 
 #pragma mark BLECharacteristicManagerDelegate
@@ -279,25 +304,6 @@
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
     logModel *model = _logArray[indexPath.row];
     return model.cellHeight;
-}
-
-- (void)logHandleWithMessage:(NSString *)text{
-    
-    if (_logArray.count > 200) {
-        [_logArray removeObjectsInRange:NSMakeRange(0, 100)];
-        [_table reloadData];
-    }
-    
-    if ([text isEqualToString:@""]) {
-        return;
-    }
-    logModel *model = [[logModel alloc] initWithMessage:text];
-    if (model) {
-        NSLog(@"%@",text);
-        [_logArray addObject:model];
-        [_table insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:(_logArray.count - 1) inSection:0]] withRowAnimation:UITableViewRowAnimationNone];
-        [_table scrollToRowAtIndexPath:[NSIndexPath indexPathForRow:(_logArray.count - 1) inSection:0] atScrollPosition:UITableViewScrollPositionBottom animated:YES];
-    }
 }
 
 @end
