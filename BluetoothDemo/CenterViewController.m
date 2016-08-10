@@ -63,6 +63,7 @@
 }
 
 - (void)viewWillDisappear:(BOOL)animated{
+    [_manager stopScanning];
     [_manager disConnect];
 }
 
@@ -72,7 +73,6 @@
     
     [_manager clearDevices];
     [_manager startScanning];
-//    [_manager.myPerpherral readValueForCharacteristic:[_manager getCharacteristicWithUUID:INSULINK_CHARACTER_TIME]];
 }
 
 // 清空
