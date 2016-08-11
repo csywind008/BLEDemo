@@ -15,14 +15,26 @@
 #define INSULINK_CHARACTER_RESPONSE         @"D002"
 #define INSULINK_CHARACTER_TIME             @"D003"
 
+typedef enum : NSUInteger {
+    BLEManagerStateDeviceUnSupport,
+    BLEManagerStatePowerOff,
+    BLEManagerStatePowerOn,
+    BLEManagerStateScanning,
+    BLEManagerStateDisConnected,
+    BLEManagerStateConnecting,
+    BLEManagerStateConnected,
+    BLEManagerStateTransmitting
+} BLEManagerState;
+
 typedef void (^ConnectResultHandler)(BOOL success,NSError *error);
 
 @protocol BLEDiscoveryDelegate <NSObject>
 
+@optional
 - (void) didDiscoveryPeripheral;
+- (void) searchTimeOut;
+- (void) connectTimeOut;
 - (void) logMessage:(NSString *)text;
-
-//- (void) bluetoothIsAvaliable:(BOOL)isAvaliable;
 
 @end
 
@@ -103,6 +115,7 @@ typedef void (^ConnectResultHandler)(BOOL success,NSError *error);
 @property (nonatomic ,weak) id<BLEDiscoveryDelegate> discoveryDelegate;
 @property (nonatomic ,strong) id<BLECharacteristicManagerDelegate> characteristicManagerDelegate;
 
+@property (nonatomic ,assign) BLEManagerState state;    // 当前状态
 @property (nonatomic ,strong) CBPeripheral *myPerpherral;  // 当前连接的设备
 @property (nonatomic ,strong) CBService	*myService;        // 选择的服务
 @property (nonatomic ,strong) CBCharacteristic *myCharacteristic; // 选择的特征
@@ -121,7 +134,7 @@ typedef void (^ConnectResultHandler)(BOOL success,NSError *error);
 - (void)startScanning;
 - (void)stopScanning;
 - (void)disConnect;
-- (void) clearDevices;
+- (void)clearDevices;
 
 - (CBCharacteristic *)getCharacteristicWithUUID:(NSString *)uuid;
 
