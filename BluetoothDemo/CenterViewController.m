@@ -105,7 +105,8 @@
     unsigned long value = strtoul([valueStr UTF8String], 0, 16);
     NSString *text = [NSString stringWithFormat:@"数据(%ld):%ld,%@",_indexNum,value,[self getFullStringFromDate:time]];
     [self logHandleWithMessage:text];
-    
+    text = [NSString stringWithFormat:@"%@注射了%ld单位的胰岛素",[self getFullStringFromDate:time],value];
+    [self logHandleWithMessage:text];
     if (indexStr) {
         // 回传序号
         NSString *index = [self ToHex:_indexNum];

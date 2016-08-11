@@ -42,8 +42,7 @@
          第一个参数nil就是扫描周围所有的外设，扫描到外设后会进入
          - (void)centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary *)advertisementData RSSI:(NSNumber *)RSSI;
          */
-        NSDictionary *options=[NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],CBCentralManagerScanOptionAllowDuplicatesKey, nil];
-        [_centerManager scanForPeripheralsWithServices:nil options:options];
+        [_centerManager scanForPeripheralsWithServices:@[[CBUUID UUIDWithString:INSULINK_SERVICE_UUID]] options:@{CBCentralManagerScanOptionAllowDuplicatesKey : @(NO)}];
     }
 }
 
@@ -185,8 +184,7 @@
         if([bleName isEqualToString:INSULINK_NAME])
         {
             if (peripheral.state != CBPeripheralStateConnected && peripheral.state != CBPeripheralStateConnecting) {
-                NSString *text = [NSString stringWithFormat:@"发现%@",peripheral.name];
-                NSLog(@"%@",text);
+                NSString *text = [NSString stringWithFormat:@"发现%@ uuid:%@",peripheral.name,peripheral.identifier];
                 [_discoveryDelegate logMessage:text];
                 
                 [_perpherralList addObject:peripheral];
